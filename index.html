@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Villain Simulator: Glitch Edition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Courier New', monospace;
+        }
+
+        body {
+            background: black;
+            color: lime;
+            overflow: auto;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        .glitch-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                linear-gradient(45deg, black 25%, transparent 25%),
+                linear-gradient(-45deg, black 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, black 75%),
+                linear-gradient(-45deg, transparent 75%, black 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            opacity: 0.1;
+            z-index: -1;
+        }
+
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                to bottom,
+                transparent 50%,
+                rgba(0, 0, 0, 0.5) 50%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0.3;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .screen {
+            position: relative;
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            z-index: 10;
+            overflow-y: auto;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .glitch-text {
+            font-size: 2.5rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            position: relative;
+            color: lime;
+            text-shadow: 2px 2px 0 magenta, -2px -2px 0 cyan;
+            animation: glitch 3s infinite;
+            margin-bottom: 20px;
+            text-align: center;
+            word-wrap: break-word;
+            max-width: 100%;
+        }
+
+        @keyframes glitch {
+            0%, 100% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(-2px, -2px); }
+            60% { transform: translate(2px, 2px); }
+            80% { transform: translate(2px, -2px); }
+        }
+
+        .btn {
+            background: transparent;
+            color: lime;
+            border: 2px solid lime;
+            padding: 12px 24px;
+            font-size: 1rem;
+            text-transform: uppercase;
+            cursor: pointer;
+            margin: 8px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+            max-width: 100%;
+            word-wrap: break-word;
+        }
+
+        .btn:hover {
+            background: lime;
+            color: black;
+            box-shadow: 0 0 15px lime;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-large {
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            margin: 15px;
+        }
+
+        .start-screen {
+            justify-content: center;
+            text-align: center;
+        }
+
+        .start-title {
+            font-size: 4rem;
+            margin-bottom: 10px;
+        }
+
+        .start-subtitle {
+            font-size: 1.5rem;
+            color: cyan;
+            margin-bottom: 40px;
+            max-width: 600px;
+        }
+
+        .start-buttons {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .tutorial-container {
+            max-width: 800px;
+            width: 100%;
+            text-align: left;
+        }
+
+        .tutorial-section {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .tutorial-section h2 {
+            color: cyan;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+
+        .tutorial-section h3 {
+            color: magenta;
+            margin: 15px 0 10px 0;
+        }
+
+        .tutorial-section p {
+            margin: 10px 0;
+            line-height: 1.5;
+        }
+
+        .tutorial-section ul {
+            margin: 10px 0 10px 20px;
+        }
+
+        .tutorial-section li {
+            margin: 8px 0;
+            line-height: 1.4;
+        }
+
+        .ending-good { border-color: cyan; }
+        .ending-neutral { border-color: yellow; }
+        .ending-evil { border-color: red; }
+        .ending-secret { border-color: magenta; }
+
+        .resource-item {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+
+        .resource-icon {
+            width: 30px;
+            height: 30px;
+            border: 1px solid;
+            margin-right: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .icon-energy { border-color: lime; color: lime; }
+        .icon-influence { border-color: cyan; color: cyan; }
+        .icon-scrap { border-color: yellow; color: yellow; }
+        .icon-notoriety { border-color: red; color: red; }
+
+        .stats-container {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 800px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .stat {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid lime;
+            padding: 8px 12px;
+            margin: 3px;
+            min-width: 140px;
+            text-align: center;
+            flex: 1;
+            max-width: calc(25% - 20px);
+        }
+
+        .stat-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: cyan;
+        }
+
+        .actions-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            width: 100%;
+            max-width: 800px;
+            margin: 15px 0;
+        }
+
+        .action-btn {
+            background: rgba(0, 0, 0, 0.7);
+            color: lime;
+            border: 1px solid lime;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            word-wrap: break-word;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .action-btn h3 {
+            font-size: 1rem;
+            margin-bottom: 8px;
+        }
+
+        .action-btn p {
+            font-size: 0.85rem;
+            margin: 3px 0;
+        }
+
+        .action-btn:hover {
+            background: rgba(0, 255, 0, 0.2);
+            box-shadow: 0 0 8px lime;
+        }
+
+        .action-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .action-btn.disabled:hover {
+            background: rgba(0, 0, 0, 0.7);
+            box-shadow: none;
+        }
+
+        .log-container {
+            width: 100%;
+            max-width: 800px;
+            height: 180px;
+            border: 2px solid lime;
+            background: rgba(0, 0, 0, 0.95);
+            padding: 12px;
+            overflow-y: auto;
+            margin: 15px 0;
+            box-shadow: 0 0 12px rgba(0, 255, 0, 0.5);
+            position: relative;
+            z-index: 20;
+        }
+
+        .log-container::before {
+            content: "OPERATION LOG";
+            position: absolute;
+            top: -10px;
+            left: 15px;
+            background: black;
+            padding: 0 8px;
+            color: cyan;
+            font-weight: bold;
+            font-size: 0.9rem;
+            z-index: 21;
+        }
+
+        .log-entry {
+            margin: 6px 0;
+            padding: 6px 10px;
+            border-left: 3px solid lime;
+            background: rgba(0, 20, 0, 0.4);
+            animation: fadeIn 0.5s;
+            line-height: 1.3;
+            font-size: 0.9rem;
+            word-wrap: break-word;
+        }
+
+        .log-entry.warning {
+            border-left-color: yellow;
+            background: rgba(50, 50, 0, 0.4);
+            color: yellow;
+        }
+
+        .log-entry.alert {
+            border-left-color: red;
+            background: rgba(50, 0, 0, 0.4);
+            color: red;
+        }
+
+        .log-entry.success {
+            border-left-color: cyan;
+            background: rgba(0, 20, 20, 0.4);
+            color: cyan;
+        }
+
+        .log-entry.system {
+            border-left-color: magenta;
+            background: rgba(20, 0, 20, 0.4);
+            color: magenta;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .progress-bar {
+            width: 100%;
+            max-width: 800px;
+            height: 18px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid lime;
+            margin: 8px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: lime;
+            width: 0%;
+            transition: width 0.5s;
+        }
+
+        .objective-container {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid cyan;
+            padding: 12px;
+            margin: 15px 0;
+            max-width: 800px;
+            width: 100%;
+            word-wrap: break-word;
+        }
+
+        .objective-title {
+            color: cyan;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            font-size: 1.1rem;
+        }
+
+        .objective-item {
+            margin: 6px 0;
+            padding-left: 18px;
+            position: relative;
+            font-size: 0.9rem;
+            line-height: 1.3;
+        }
+
+        .objective-item::before {
+            content: ">";
+            position: absolute;
+            left: 5px;
+            color: magenta;
+        }
+
+        .objective-item.completed {
+            color: lime;
+            text-decoration: line-through;
+        }
+
+        .faction-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            width: 100%;
+            max-width: 800px;
+            margin: 15px 0;
+        }
+
+        .faction {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid;
+            padding: 15px;
+            text-align: center;
+            word-wrap: break-word;
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .faction h3 {
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+
+        .faction p {
+            font-size: 0.9rem;
+            margin: 5px 0;
+            line-height: 1.3;
+        }
+
+        .faction-syndicate { border-color: red; }
+        .faction-hackers { border-color: cyan; }
+        .faction-benders { border-color: magenta; }
+        .faction-corp { border-color: yellow; }
+
+        .glitch-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50;
+            opacity: 0;
+            mix-blend-mode: screen;
+        }
+
+        .glitch-effect {
+            animation: glitchEffect 0.3s;
+        }
+
+        @keyframes glitchEffect {
+            0% { transform: translate(0); filter: hue-rotate(0); }
+            20% { transform: translate(-5px, 5px); filter: hue-rotate(90deg); }
+            40% { transform: translate(-5px, -5px); filter: hue-rotate(180deg); }
+            60% { transform: translate(5px, 5px); filter: hue-rotate(270deg); }
+            80% { transform: translate(5px, -5px); filter: hue-rotate(360deg); }
+            100% { transform: translate(0); filter: hue-rotate(0); }
+        }
+
+        .bottom-nav {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0 15px 0;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .upgrade-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+            width: 100%;
+            max-width: 800px;
+            margin: 15px 0;
+        }
+
+        .upgrade {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid lime;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            word-wrap: break-word;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .upgrade h3 {
+            font-size: 1rem;
+            margin-bottom: 8px;
+        }
+
+        .upgrade p {
+            font-size: 0.85rem;
+            margin: 3px 0;
+            line-height: 1.2;
+        }
+
+        .upgrade:hover {
+            background: rgba(0, 255, 0, 0.1);
+        }
+
+        .upgrade.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .upgrade.disabled:hover {
+            background: rgba(0, 0, 0, 0.7);
+        }
+
+        .upgrade-cost {
+            color: cyan;
+            font-weight: bold;
+        }
+
+        .upgrade-level {
+            color: magenta;
+            font-weight: bold;
+        }
+
+        .tutorial-nav {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 800px;
+            margin-top: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .glitch-text {
+                font-size: 1.8rem;
+            }
+            
+            .start-title {
+                font-size: 2.5rem;
+            }
+            
+            .stats-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .stat {
+                width: 100%;
+                max-width: 300px;
+                min-width: auto;
+            }
+            
+            .actions-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .faction-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .upgrade-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .bottom-nav {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 300px;
+            }
+            
+            .log-container {
+                height: 150px;
+            }
+            
+            .tutorial-nav {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .glitch-text {
+                font-size: 1.5rem;
+            }
+            
+            .start-title {
+                font-size: 2rem;
+            }
+            
+            .stat {
+                min-width: auto;
+                max-width: 100%;
+            }
+            
+            .log-container {
+                height: 120px;
+                font-size: 0.8rem;
+            }
+            
+            .log-entry {
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="glitch-bg"></div>
+    <div class="scanlines"></div>
+    <div class="glitch-overlay"></div>
+
+    <div id="gameContainer">
+        <div id="startScreen" class="screen start-screen">
+            <h1 class="glitch-text start-title">VILLAIN SIMULATOR</h1>
+            <h2 class="start-subtitle">GLITCH EDITION</h2>
+            <p style="margin-bottom: 40px; max-width: 600px; line-height: 1.5;">
+                The system is broken. Reality is glitching. Seize control and build your criminal empire in a world where nothing is as it seems.
+            </p>
+            <div class="start-buttons">
+                <button class="btn btn-large" id="startGameBtn">BEGIN SIMULATION</button>
+                <button class="btn btn-large" id="tutorialBtn">TUTORIAL</button>
+                <button class="btn btn-large" id="loadGameBtn">CONTINUE OPERATION</button>
+            </div>
+        </div>
+
+        <div id="tutorialScreen" class="screen hidden">
+            <h1 class="glitch-text">OPERATION TUTORIAL</h1>
+            
+            <div class="tutorial-container">
+                <div class="tutorial-section">
+                    <h2>WELCOME, VILLAIN</h2>
+                    <p>You are a digital criminal in a glitch-ridden reality. Build your empire, manipulate factions, and shape the future of this broken world.</p>
+                </div>
+
+                <div class="tutorial-section">
+                    <h2>RESOURCE MANAGEMENT</h2>
+                    
+                    <div class="resource-item">
+                        <div class="resource-icon icon-energy">GE</div>
+                        <div>
+                            <strong>GLITCH ENERGY</strong> - Fuel for your criminal operations. Regenerates over time or through specific actions.
+                        </div>
+                    </div>
+                    
+                    <div class="resource-item">
+                        <div class="resource-icon icon-influence">IF</div>
+                        <div>
+                            <strong>INFLUENCE</strong> - Your reputation in the criminal underworld. Used to infiltrate factions and gain special benefits.
+                        </div>
+                    </div>
+                    
+                    <div class="resource-item">
+                        <div class="resource-icon icon-scrap">TS</div>
+                        <div>
+                            <strong>TECH SCRAP</strong> - Currency for upgrades and enhancements. Acquired through successful operations.
+                        </div>
+                    </div>
+                    
+                    <div class="resource-item">
+                        <div class="resource-icon icon-notoriety">NT</div>
+                        <div>
+                            <strong>NOTORIETY</strong> - How much attention you're drawing. High notoriety attracts enemies but can unlock powerful options.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tutorial-section">
+                    <h2>CRIMINAL OPERATIONS</h2>
+                    <p>Perform actions to advance your goals and acquire resources:</p>
+                    <ul>
+                        <li><strong>DATA THEFT</strong> - Steal corporate data for Tech Scrap and Influence</li>
+                        <li><strong>CORPORATE ESPIONAGE</strong> - Infiltrate corporations for Tech Scrap and Notoriety</li>
+                        <li><strong>SYSTEM HACK</strong> - Breach systems for Influence and Glitch Energy</li>
+                        <li><strong>REALITY BEND</strong> - Use glitches for major rewards but reduce Reality Integrity</li>
+                    </ul>
+                </div>
+
+                <div class="tutorial-section">
+                    <h2>FACTIONS & ALLIANCES</h2>
+                    <p>Four major factions control the criminal underworld:</p>
+                    <ul>
+                        <li><strong style="color: red">THE SYNDICATE</strong> - Traditional organized crime</li>
+                        <li><strong style="color: cyan">NEURAL HACKERS</strong> - Digital criminals and data thieves</li>
+                        <li><strong style="color: magenta">REALITY BENDERS</strong> - Masters of glitch manipulation</li>
+                        <li><strong style="color: yellow">CORP ALLIANCE</strong> - Corporate espionage network</li>
+                    </ul>
+                    <p>Build influence with factions to unlock special abilities and resources.</p>
+                </div>
+
+                <div class="tutorial-section">
+                    <h2>UPGRADES & PROGRESSION</h2>
+                    <p>Use Tech Scrap to enhance your capabilities:</p>
+                    <ul>
+                        <li><strong>Glitch Capacity</strong> - Increase maximum Glitch Energy</li>
+                        <li><strong>Data Efficiency</strong> - Reduce operation costs</li>
+                        <li><strong>Influence Boost</strong> - Gain more Influence from operations</li>
+                        <li><strong>Reality Manipulation</strong> - Unlock advanced glitch abilities</li>
+                    </ul>
+                </div>
+
+                <div class="tutorial-section">
+                    <h2>POSSIBLE ENDINGS</h2>
+                    
+                    <div class="tutorial-section ending-good">
+                        <h3>THE FIXER (Good Ending)</h3>
+                        <p>Sacrifice yourself to repair reality and become a legend.</p>
+                        <p><strong>Requirements:</strong> High Reality Integrity, Low Notoriety, Purifier Faction support</p>
+                    </div>
+                    
+                    <div class="tutorial-section ending-neutral">
+                        <h3>THE ARCHITECT (Neutral Ending)</h3>
+                        <p>Balance order and chaos to create a new stable reality as its unseen ruler.</p>
+                        <p><strong>Requirements:</strong> Balanced Reality Integrity, All factions at 25+ Influence</p>
+                    </div>
+                    
+                    <div class="tutorial-section ending-evil">
+                        <h3>THE GLITCH GOD (Evil Ending)</h3>
+                        <p>Embrace chaos completely and become one with the glitch.</p>
+                        <p><strong>Requirements:</strong> Low Reality Integrity, High Notoriety, Reality Benders faction dominance</p>
+                    </div>
+                    
+                    <div class="tutorial-section ending-secret">
+                        <h3>THE EXPLORER (Secret Ending)</h3>
+                        <p>Discover how to travel between realities and leave this world behind.</p>
+                        <p><strong>Requirements:</strong> Complete all other endings first, find all Reality Fragments</p>
+                    </div>
+                </div>
+
+                <div class="tutorial-section">
+                    <h2>STRATEGY TIPS</h2>
+                    <ul>
+                        <li>Monitor your Glitch Energy - you can't perform actions without it</li>
+                        <li>Balance your Notoriety - too much attracts unwanted attention</li>
+                        <li>Focus on one ending path early to optimize your strategy</li>
+                        <li>Upgrade your capabilities before attempting major operations</li>
+                        <li>Watch the Reality Integrity meter - it affects available options</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="tutorial-nav">
+                <button class="btn" id="backToStartBtn">BACK TO START</button>
+                <button class="btn" id="startFromTutorialBtn">BEGIN SIMULATION</button>
+            </div>
+        </div>
+
+        <div id="gameScreen" class="screen hidden">
+            <h1 class="glitch-text">OPERATION: ANONYMOUS</h1>
+            
+            <div class="stats-container">
+                <div class="stat">
+                    <div>GLITCH ENERGY</div>
+                    <div class="stat-value" id="glitchEnergy">5</div>
+                </div>
+                <div class="stat">
+                    <div>INFLUENCE</div>
+                    <div class="stat-value" id="influence">64</div>
+                </div>
+                <div class="stat">
+                    <div>TECH SCRAP</div>
+                    <div class="stat-value" id="techScrap">205</div>
+                </div>
+                <div class="stat">
+                    <div>NOTORIETY</div>
+                    <div class="stat-value" id="notoriety">18</div>
+                </div>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" id="glitchProgress" style="width: 65%;"></div>
+            </div>
+            <div style="text-align: center; margin-bottom: 15px; color: cyan; font-size: 0.9rem;">REALITY INTEGRITY: 65%</div>
+
+            <div class="objective-container">
+                <div class="objective-title">CURRENT OBJECTIVES</div>
+                <div class="objective-item" id="obj1">REGENERATE GLITCH ENERGY TO CONTINUE OPERATIONS</div>
+                <div class="objective-item" id="obj2">INVEST IN UPGRADES TO ENHANCE YOUR CAPABILITIES</div>
+                <div class="objective-item" id="obj3">BUILD INFLUENCE WITH FACTIONS FOR SPECIAL BENEFITS</div>
+                <div class="objective-item" id="obj4">REDUCE REALITY INTEGRITY BELOW 50% TO UNLOCK ADVANCED ABILITIES</div>
+            </div>
+
+            <h2 style="margin: 8px 0; color: cyan; font-size: 1.2rem;">CRIMINAL ACTIONS</h2>
+            <div class="actions-container">
+                <div class="action-btn" data-action="dataTheft">
+                    <h3>DATA THEFT</h3>
+                    <p>Cost: 10 Glitch Energy</p>
+                    <p>Reward: Tech Scrap + Influence</p>
+                </div>
+                <div class="action-btn disabled" data-action="corporateEspionage">
+                    <h3>CORPORATE ESPIONAGE</h3>
+                    <p>Cost: 20 Glitch Energy</p>
+                    <p>Reward: Tech Scrap + Notoriety</p>
+                </div>
+                <div class="action-btn disabled" data-action="systemHack">
+                    <h3>SYSTEM HACK</h3>
+                    <p>Cost: 15 Glitch Energy</p>
+                    <p>Reward: Influence + Glitch Energy</p>
+                </div>
+                <div class="action-btn disabled" data-action="realityBend">
+                    <h3>REALITY BEND</h3>
+                    <p>Cost: 30 Glitch Energy</p>
+                    <p>Reward: Major Resources</p>
+                </div>
+            </div>
+
+            <h2 style="margin: 8px 0; color: magenta; font-size: 1.2rem;">OPERATION LOG</h2>
+            <div class="log-container" id="gameLog">
+                <div class="log-entry system">> SYSTEM BOOT: VILLAIN SIMULATOR GLITCH EDITION</div>
+                <div class="log-entry">> REALITY INTEGRITY: 65% - CONTINUE DISRUPTION</div>
+                <div class="log-entry warning">> GLITCH ENERGY CRITICALLY LOW: 5/100</div>
+                <div class="log-entry">> TECH SCRAP RESERVES: 205 - READY FOR UPGRADES</div>
+                <div class="log-entry">> INFLUENCE NETWORK: 64 - STRONG PRESENCE</div>
+                <div class="log-entry alert">> NOTORIETY LEVEL: 18 - ATTRACTION INCREASING</div>
+                <div class="log-entry success">> FACTION RELATIONS: SYNDICATE (10), HACKERS (5), CORP (5)</div>
+                <div class="log-entry">> RECOMMENDATION: REGENERATE GLITCH ENERGY OR PURCHASE UPGRADES</div>
+            </div>
+
+            <div class="bottom-nav">
+                <button class="btn" id="waitBtn">WAIT & REGENERATE</button>
+                <button class="btn" id="upgradesBtn">UPGRADES</button>
+                <button class="btn" id="factionsBtn">FACTIONS</button>
+                <button class="btn" id="strategyBtn">STRATEGY GUIDE</button>
+                <button class="btn" id="backToMenuBtn">MAIN MENU</button>
+            </div>
+        </div>
+
+        <div id="upgradesScreen" class="screen hidden">
+            <h1 class="glitch-text">SYSTEM UPGRADES</h1>
+            
+            <div style="color: cyan; margin-bottom: 15px; text-align: center; font-size: 1rem;">
+                TECH SCRAP AVAILABLE: <span id="availableScrap">205</span>
+            </div>
+            
+            <div class="upgrade-container">
+                <div class="upgrade" data-upgrade="glitchCapacity">
+                    <h3>GLITCH CAPACITY</h3>
+                    <p>Increase maximum Glitch Energy</p>
+                    <p class="upgrade-cost">Cost: 50 Tech Scrap</p>
+                    <p class="upgrade-level">Level: 1</p>
+                </div>
+                <div class="upgrade" data-upgrade="dataEfficiency">
+                    <h3>DATA EFFICIENCY</h3>
+                    <p>Reduce cost of data operations</p>
+                    <p class="upgrade-cost">Cost: 40 Tech Scrap</p>
+                    <p class="upgrade-level">Level: 1</p>
+                </div>
+                <div class="upgrade" data-upgrade="influenceBoost">
+                    <h3>INFLUENCE BOOST</h3>
+                    <p>Gain more Influence from operations</p>
+                    <p class="upgrade-cost">Cost: 60 Tech Scrap</p>
+                    <p class="upgrade-level">Level: 1</p>
+                </div>
+                <div class="upgrade" data-upgrade="realityManipulation">
+                    <h3>REALITY MANIPULATION</h3>
+                    <p>Unlock advanced glitch abilities</p>
+                    <p class="upgrade-cost">Cost: 100 Tech Scrap</p>
+                    <p class="upgrade-level">Level: 0</p>
+                </div>
+            </div>
+
+            <div class="bottom-nav">
+                <button class="btn" id="backFromUpgradesBtn">BACK TO OPERATIONS</button>
+            </div>
+        </div>
+
+        <div id="factionsScreen" class="screen hidden">
+            <h1 class="glitch-text">FACTION CONTROL</h1>
+            
+            <div style="color: cyan; margin-bottom: 15px; text-align: center; font-size: 1rem;">
+                INFLUENCE AVAILABLE: <span id="availableInfluence">64</span>
+            </div>
+            
+            <div class="faction-container">
+                <div class="faction faction-syndicate">
+                    <h3>THE SYNDICATE</h3>
+                    <p>Traditional organized crime</p>
+                    <p>Influence: <span id="syndicateInfluence">10</span></p>
+                    <button class="btn" data-faction="syndicate">INFILTRATE (20 Influence)</button>
+                </div>
+                <div class="faction faction-hackers">
+                    <h3>NEURAL HACKERS</h3>
+                    <p>Digital criminals and data thieves</p>
+                    <p>Influence: <span id="hackersInfluence">5</span></p>
+                    <button class="btn" data-faction="hackers">INFILTRATE (20 Influence)</button>
+                </div>
+                <div class="faction faction-benders">
+                    <h3>REALITY BENDERS</h3>
+                    <p>Masters of glitch manipulation</p>
+                    <p>Influence: <span id="bendersInfluence">0</span></p>
+                    <button class="btn" data-faction="benders">INFILTRATE (20 Influence)</button>
+                </div>
+                <div class="faction faction-corp">
+                    <h3>CORP ALLIANCE</h3>
+                    <p>Corporate espionage network</p>
+                    <p>Influence: <span id="corpInfluence">5</span></p>
+                    <button class="btn" data-faction="corp">INFILTRATE (20 Influence)</button>
+                </div>
+            </div>
+
+            <div class="bottom-nav">
+                <button class="btn" id="backFromFactionsBtn">BACK TO OPERATIONS</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const gameState = {
+            glitchEnergy: 5,
+            maxGlitchEnergy: 100,
+            influence: 64,
+            techScrap: 205,
+            notoriety: 18,
+            realityIntegrity: 65,
+            
+            upgrades: {
+                glitchCapacity: 1,
+                dataEfficiency: 1,
+                influenceBoost: 1,
+                realityManipulation: 0
+            },
+            
+            factions: {
+                syndicate: 10,
+                hackers: 5,
+                benders: 0,
+                corp: 5
+            }
+        };
+
+        const screens = {
+            startScreen: document.getElementById('startScreen'),
+            tutorialScreen: document.getElementById('tutorialScreen'),
+            gameScreen: document.getElementById('gameScreen'),
+            upgradesScreen: document.getElementById('upgradesScreen'),
+            factionsScreen: document.getElementById('factionsScreen')
+        };
+
+        function initGame() {
+            document.getElementById('startGameBtn').addEventListener('click', startNewGame);
+            document.getElementById('tutorialBtn').addEventListener('click', showTutorial);
+            document.getElementById('loadGameBtn').addEventListener('click', loadGame);
+            
+            document.getElementById('backToStartBtn').addEventListener('click', showStartScreen);
+            document.getElementById('startFromTutorialBtn').addEventListener('click', startNewGame);
+            
+            document.getElementById('waitBtn').addEventListener('click', waitAndRegenerate);
+            document.getElementById('upgradesBtn').addEventListener('click', showUpgradesScreen);
+            document.getElementById('factionsBtn').addEventListener('click', showFactionsScreen);
+            document.getElementById('strategyBtn').addEventListener('click', showStrategyGuide);
+            document.getElementById('backToMenuBtn').addEventListener('click', showStartScreen);
+            
+            document.querySelectorAll('.upgrade').forEach(upgrade => {
+                upgrade.addEventListener('click', (e) => {
+                    const upgradeType = e.currentTarget.getAttribute('data-upgrade');
+                    purchaseUpgrade(upgradeType);
+                });
+            });
+            
+            document.querySelectorAll('[data-faction]').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const faction = e.target.getAttribute('data-faction');
+                    infiltrateFaction(faction);
+                });
+            });
+            
+            document.getElementById('backFromUpgradesBtn').addEventListener('click', () => {
+                showScreen('gameScreen');
+            });
+            
+            document.getElementById('backFromFactionsBtn').addEventListener('click', () => {
+                showScreen('gameScreen');
+            });
+            
+            document.querySelectorAll('.action-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    if (!btn.classList.contains('disabled')) {
+                        const action = e.currentTarget.getAttribute('data-action');
+                        performAction(action);
+                    }
+                });
+            });
+        }
+
+        function showStartScreen() {
+            showScreen('startScreen');
+        }
+
+        function showTutorial() {
+            showScreen('tutorialScreen');
+        }
+
+        function startNewGame() {
+            Object.assign(gameState, {
+                glitchEnergy: 100,
+                maxGlitchEnergy: 100,
+                influence: 10,
+                techScrap: 50,
+                notoriety: 5,
+                realityIntegrity: 90,
+                
+                upgrades: {
+                    glitchCapacity: 1,
+                    dataEfficiency: 1,
+                    influenceBoost: 1,
+                    realityManipulation: 0
+                },
+                
+                factions: {
+                    syndicate: 5,
+                    hackers: 5,
+                    benders: 0,
+                    corp: 5
+                }
+            });
+            
+            const logContainer = document.getElementById('gameLog');
+            logContainer.innerHTML = '';
+            
+            addLogEntry("> SYSTEM BOOT: VILLAIN SIMULATOR GLITCH EDITION", "system");
+            addLogEntry("> REALITY INTEGRITY: 90%", "success");
+            addLogEntry("> INITIATE CRIMINAL OPERATIONS", "system");
+            addLogEntry("> GLITCH ENERGY: 100/100 - READY FOR OPERATIONS", "success");
+            
+            updateGameScreen();
+            showScreen('gameScreen');
+        }
+
+        function loadGame() {
+            updateGameScreen();
+            showScreen('gameScreen');
+            addLogEntry("> GAME STATE LOADED FROM MEMORY", "system");
+        }
+
+        function showStrategyGuide() {
+            addLogEntry("> STRATEGY GUIDE: Focus on WAIT & REGENERATE first", "system");
+            addLogEntry("> Then purchase GLITCH CAPACITY upgrade", "system");
+            addLogEntry("> Target: THE ARCHITECT ending (most achievable)", "success");
+            alert("Strategy Guide:\n\n1. Use WAIT & REGENERATE to build Glitch Energy\n2. Purchase Glitch Capacity Upgrade (50 Tech Scrap)\n3. Aim for THE ARCHITECT ending (balanced approach)\n4. Keep Reality Integrity between 40-60%\n5. Build all factions to 25+ Influence");
+        }
+
+        function showScreen(screenName) {
+            Object.values(screens).forEach(screen => {
+                screen.classList.add('hidden');
+            });
+            
+            screens[screenName].classList.remove('hidden');
+            
+            if (screenName === 'upgradesScreen') {
+                updateUpgradesScreen();
+            } else if (screenName === 'factionsScreen') {
+                updateFactionsScreen();
+            } else if (screenName === 'gameScreen') {
+                updateGameScreen();
+            }
+        }
+
+        function updateGameScreen() {
+            document.getElementById('glitchEnergy').textContent = gameState.glitchEnergy;
+            document.getElementById('influence').textContent = gameState.influence;
+            document.getElementById('techScrap').textContent = gameState.techScrap;
+            document.getElementById('notoriety').textContent = gameState.notoriety;
+            
+            document.getElementById('glitchProgress').style.width = `${gameState.realityIntegrity}%`;
+            
+            updateActionButtons();
+            
+            updateObjectives();
+        }
+
+        function updateActionButtons() {
+            document.querySelectorAll('.action-btn').forEach(btn => {
+                const action = btn.getAttribute('data-action');
+                let cost = 0;
+                
+                switch(action) {
+                    case 'dataTheft': cost = 10; break;
+                    case 'corporateEspionage': cost = 20; break;
+                    case 'systemHack': cost = 15; break;
+                    case 'realityBend': cost = 30; break;
+                }
+                
+                if (gameState.glitchEnergy < cost) {
+                    btn.classList.add('disabled');
+                } else {
+                    btn.classList.remove('disabled');
+                }
+            });
+        }
+
+        function updateObjectives() {
+            const obj1 = document.getElementById('obj1');
+            if (gameState.glitchEnergy >= 20) {
+                obj1.classList.add('completed');
+            } else {
+                obj1.classList.remove('completed');
+            }
+            
+            const obj2 = document.getElementById('obj2');
+            if (gameState.techScrap < 40) {
+                obj2.classList.add('completed');
+            } else {
+                obj2.classList.remove('completed');
+            }
+            
+            const obj3 = document.getElementById('obj3');
+            if (gameState.factions.syndicate >= 20 || gameState.factions.hackers >= 20 || 
+                gameState.factions.benders >= 20 || gameState.factions.corp >= 20) {
+                obj3.classList.add('completed');
+            } else {
+                obj3.classList.remove('completed');
+            }
+            
+            const obj4 = document.getElementById('obj4');
+            if (gameState.realityIntegrity < 50) {
+                obj4.classList.add('completed');
+            } else {
+                obj4.classList.remove('completed');
+            }
+        }
+
+        function waitAndRegenerate() {
+            const oldEnergy = gameState.glitchEnergy;
+            gameState.glitchEnergy = Math.min(gameState.glitchEnergy + 15, gameState.maxGlitchEnergy);
+            
+            addLogEntry(`> WAITING... GLITCH ENERGY INCREASED FROM ${oldEnergy} TO ${gameState.glitchEnergy}`, "success");
+            
+            if (Math.random() < 0.3) {
+                triggerRandomEvent();
+            }
+            
+            updateGameScreen();
+            triggerGlitchEffect();
+        }
+
+        function performAction(action) {
+            let cost = 0;
+            let message = "";
+            let glitchChange = 0;
+            let influenceChange = 0;
+            let scrapChange = 0;
+            let notorietyChange = 0;
+            let integrityChange = 0;
+            
+            switch(action) {
+                case 'dataTheft':
+                    cost = 10;
+                    message = "DATA THEFT OPERATION EXECUTED";
+                    glitchChange = -cost;
+                    influenceChange = 5 + gameState.upgrades.influenceBoost;
+                    scrapChange = 15;
+                    notorietyChange = 1;
+                    break;
+                    
+                case 'corporateEspionage':
+                    cost = 20;
+                    message = "CORPORATE ESPIONAGE SUCCESSFUL";
+                    glitchChange = -cost;
+                    scrapChange = 25;
+                    notorietyChange = 3;
+                    integrityChange = -2;
+                    break;
+                    
+                case 'systemHack':
+                    cost = 15;
+                    message = "SYSTEM HACK COMPLETED";
+                    glitchChange = 5 - cost;
+                    influenceChange = 8 + gameState.upgrades.influenceBoost;
+                    integrityChange = -3;
+                    break;
+                    
+                case 'realityBend':
+                    cost = 30;
+                    message = "REALITY BENDING INITIATED - MAJOR DISRUPTION DETECTED";
+                    glitchChange = -cost;
+                    influenceChange = 10;
+                    scrapChange = 40;
+                    notorietyChange = 5;
+                    integrityChange = -10;
+                    break;
+            }
+            
+            gameState.glitchEnergy = Math.min(gameState.glitchEnergy + glitchChange, gameState.maxGlitchEnergy);
+            gameState.influence += influenceChange;
+            gameState.techScrap += scrapChange;
+            gameState.notoriety += notorietyChange;
+            gameState.realityIntegrity = Math.max(0, gameState.realityIntegrity + integrityChange);
+            
+            addLogEntry(`> ${message}`, "system");
+            if (influenceChange > 0) addLogEntry(`> INFLUENCE +${influenceChange}`, "success");
+            if (scrapChange > 0) addLogEntry(`> TECH SCRAP +${scrapChange}`, "success");
+            if (notorietyChange > 0) addLogEntry(`> NOTORIETY +${notorietyChange}`, notorietyChange > 3 ? "alert" : "warning");
+            if (integrityChange < 0) addLogEntry(`> REALITY INTEGRITY ${integrityChange}`, "success");
+            
+            if (Math.random() < 0.4) {
+                triggerRandomEvent();
+            }
+            
+            updateGameScreen();
+            triggerGlitchEffect();
+        }
+
+        function addLogEntry(entry, type = "") {
+            const logContainer = document.getElementById('gameLog');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = entry;
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            if (logContainer.children.length > 15) {
+                logContainer.removeChild(logContainer.firstChild);
+            }
+        }
+
+        function triggerGlitchEffect() {
+            const overlay = document.querySelector('.glitch-overlay');
+            overlay.style.background = `linear-gradient(45deg, 
+                rgba(255, 0, 255, 0.3), 
+                rgba(0, 255, 255, 0.3), 
+                rgba(0, 255, 0, 0.3))`;
+            overlay.style.opacity = '0.7';
+            overlay.classList.add('glitch-effect');
+            
+            setTimeout(() => {
+                overlay.style.opacity = '0';
+                overlay.classList.remove('glitch-effect');
+            }, 300);
+        }
+
+        function triggerRandomEvent() {
+            const events = [
+                {
+                    message: "> GLITCH DETECTED: REALITY FRAGMENTING",
+                    effect: () => {
+                        gameState.realityIntegrity -= 2;
+                        gameState.glitchEnergy += 10;
+                        addLogEntry("> GLITCH ENERGY INCREASED +10", "success");
+                    }
+                },
+                {
+                    message: "> CORPSEC INVESTIGATION INITIATED",
+                    effect: () => {
+                        gameState.notoriety += 2;
+                        if (gameState.techScrap > 20) {
+                            gameState.techScrap -= 10;
+                            addLogEntry("> TECH SCRAP CONFISCATED -10", "alert");
+                        }
+                    }
+                },
+                {
+                    message: "> UNEXPECTED ALLIANCE OFFER",
+                    effect: () => {
+                        gameState.influence += 5;
+                        addLogEntry("> INFLUENCE INCREASED +5", "success");
+                    }
+                },
+                {
+                    message: "> SYSTEM VULNERABILITY DISCOVERED",
+                    effect: () => {
+                        gameState.techScrap += 15;
+                        addLogEntry("> TECH SCRAP ACQUIRED +15", "success");
+                    }
+                },
+                {
+                    message: "> GLITCH STORM INCOMING - SYSTEMS OVERLOADED",
+                    effect: () => {
+                        gameState.glitchEnergy = gameState.maxGlitchEnergy;
+                        gameState.realityIntegrity -= 5;
+                        addLogEntry("> GLITCH ENERGY MAXIMIZED", "system");
+                        addLogEntry("> REALITY INTEGRITY -5", "warning");
+                    }
+                }
+            ];
+            
+            const event = events[Math.floor(Math.random() * events.length)];
+            addLogEntry(event.message, "system");
+            event.effect();
+            
+            updateGameScreen();
+        }
+
+        function showUpgradesScreen() {
+            showScreen('upgradesScreen');
+        }
+
+        function updateUpgradesScreen() {
+            document.getElementById('availableScrap').textContent = gameState.techScrap;
+            
+            document.querySelectorAll('.upgrade').forEach(upgrade => {
+                const upgradeType = upgrade.getAttribute('data-upgrade');
+                const cost = getUpgradeCost(upgradeType);
+                const level = gameState.upgrades[upgradeType];
+                
+                upgrade.querySelector('.upgrade-level').textContent = `Level: ${level}`;
+                
+                if (gameState.techScrap < cost || (upgradeType === 'realityManipulation' && level >= 1)) {
+                    upgrade.classList.add('disabled');
+                } else {
+                    upgrade.classList.remove('disabled');
+                }
+                
+                upgrade.querySelector('.upgrade-cost').textContent = `Cost: ${cost} Tech Scrap`;
+            });
+        }
+
+        function getUpgradeCost(upgradeType) {
+            const baseCosts = {
+                glitchCapacity: 50,
+                dataEfficiency: 40,
+                influenceBoost: 60,
+                realityManipulation: 100
+            };
+            
+            const level = gameState.upgrades[upgradeType];
+            return baseCosts[upgradeType] * level;
+        }
+
+        function purchaseUpgrade(upgradeType) {
+            const cost = getUpgradeCost(upgradeType);
+            
+            if (gameState.techScrap < cost) {
+                addLogEntry("> INSUFFICIENT TECH SCRAP", "alert");
+                return;
+            }
+            
+            gameState.techScrap -= cost;
+            gameState.upgrades[upgradeType]++;
+            
+            switch(upgradeType) {
+                case 'glitchCapacity':
+                    gameState.maxGlitchEnergy += 25;
+                    gameState.glitchEnergy = gameState.maxGlitchEnergy;
+                    addLogEntry("> GLITCH CAPACITY INCREASED +25", "success");
+                    break;
+                    
+                case 'dataEfficiency':
+                    addLogEntry("> DATA OPERATIONS OPTIMIZED", "success");
+                    break;
+                    
+                case 'influenceBoost':
+                    addLogEntry("> INFLUENCE GENERATION ENHANCED", "success");
+                    break;
+                    
+                case 'realityManipulation':
+                    addLogEntry("> REALITY MANIPULATION UNLOCKED - NEW ABILITIES AVAILABLE", "system");
+                    break;
+            }
+            
+            updateUpgradesScreen();
+            updateGameScreen();
+            triggerGlitchEffect();
+        }
+
+        function showFactionsScreen() {
+            showScreen('factionsScreen');
+        }
+
+        function updateFactionsScreen() {
+            document.getElementById('availableInfluence').textContent = gameState.influence;
+            document.getElementById('syndicateInfluence').textContent = gameState.factions.syndicate;
+            document.getElementById('hackersInfluence').textContent = gameState.factions.hackers;
+            document.getElementById('bendersInfluence').textContent = gameState.factions.benders;
+            document.getElementById('corpInfluence').textContent = gameState.factions.corp;
+            
+            document.querySelectorAll('[data-faction]').forEach(btn => {
+                if (gameState.influence < 20) {
+                    btn.classList.add('disabled');
+                } else {
+                    btn.classList.remove('disabled');
+                }
+            });
+        }
+
+        function infiltrateFaction(faction) {
+            const cost = 20;
+            
+            if (gameState.influence < cost) {
+                addLogEntry("> INSUFFICIENT INFLUENCE", "alert");
+                return;
+            }
+            
+            gameState.influence -= cost;
+            gameState.factions[faction] += 5;
+            
+            addLogEntry(`> ${faction.toUpperCase()} INFILTRATION SUCCESSFUL`, "system");
+            addLogEntry(`> INFLUENCE WITH ${faction.toUpperCase()} INCREASED +5`, "success");
+            
+            switch(faction) {
+                case 'syndicate':
+                    gameState.techScrap += 15;
+                    addLogEntry("> ACQUIRED SYNDICATE RESOURCES +15 TECH SCRAP", "success");
+                    break;
+                    
+                case 'hackers':
+                    gameState.glitchEnergy += 15;
+                    addLogEntry("> HACKER NETWORK PROVIDING GLITCH ENERGY +15", "success");
+                    break;
+                    
+                case 'benders':
+                    gameState.realityIntegrity -= 3;
+                    addLogEntry("> REALITY BENDERS TEACHING ADVANCED TECHNIQUES", "success");
+                    addLogEntry("> REALITY INTEGRITY -3", "warning");
+                    break;
+                    
+                case 'corp':
+                    gameState.notoriety += 3;
+                    addLogEntry("> CORPORATE ACCESS GRANTED", "success");
+                    addLogEntry("> NOTORIETY +3", "warning");
+                    break;
+            }
+            
+            updateFactionsScreen();
+            updateGameScreen();
+            triggerGlitchEffect();
+        }
+
+        window.addEventListener('load', initGame);
+    </script>
+</body>
+</html>
