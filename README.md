@@ -7,6 +7,8 @@
 
 A cyberpunk-themed villain simulator where you build your criminal empire in a glitch-ridden digital world. Balance resources, infiltrate factions, and shape reality itself in this strategic browser-based game.
 
+[![Live Demo](https://img.shields.io/badge/Live-Demo-blue.svg)](https://aaditya-ops-cpu.github.io/Ultimate-Villain-Game/)
+
 ## 🎮 Features
 
 - **Resource Management**: Manage Glitch Energy, Influence, Tech Scrap, and Notoriety
